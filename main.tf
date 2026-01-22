@@ -1,8 +1,4 @@
 
-
-################################
-# AMI
-################################
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -13,16 +9,10 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
-################################
-# VPC Module
-################################
 module "vpc" {
   source = "./modules/vpc"
 }
 
-################################
-# Security Groups
-################################
 resource "aws_security_group" "public_sg" {
   name   = "public-ec2-sg"
   vpc_id = module.vpc.vpc_id
@@ -75,9 +65,6 @@ resource "aws_security_group" "private_sg" {
   }
 }
 
-################################
-# EC2 Modules
-################################
 module "public_ec2" {
   source          = "./modules/ec2"
   ami             = data.aws_ami.amazon_linux.id
@@ -96,9 +83,6 @@ module "private_ec2" {
   security_groups = [aws_security_group.private_sg.id]
 }
 
-################################
-# ALB Modules
-################################
 module "public_alb" {
   source   = "./modules/alb"
   name     = "public-alb"
@@ -113,9 +97,6 @@ module "private_alb" {
   subnets  = module.vpc.private_subnets
 }
 
-################################
-# Target Group (Private EC2)
-################################
 resource "aws_lb_target_group" "private_ec2_tg" {
   name     = "private-ec2-tg"
   port     = 80
@@ -129,9 +110,6 @@ resource "aws_lb_target_group_attachment" "private_ec2_attach" {
   port             = 80
 }
 
-################################
-# Public ALB Listener
-################################
 resource "aws_lb_listener" "public_alb_listener" {
   load_balancer_arn = module.public_alb.arn
   port              = 80
@@ -143,9 +121,6 @@ resource "aws_lb_listener" "public_alb_listener" {
   }
 }
 
-################################
-# Provisioner (Public EC2)
-################################
 resource "null_resource" "public_provisioner" {
   depends_on = [module.public_ec2]
 
@@ -165,9 +140,6 @@ resource "null_resource" "public_provisioner" {
   }
 }
 
-################################
-# Local Exec (IPs)
-################################
 resource "null_resource" "all_ips" {
   provisioner "local-exec" {
     command = <<EOT
